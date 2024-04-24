@@ -1,0 +1,10 @@
+Since the classes are unbalanced, we will calculate ROC-AUC metric to evaluate classifier performance. Okay?
+-See Exploratory Data Analysis from part 1 for label histogram.
+
+Due to seaborn version, heatmap figure is bad. Check if later we can use newer python and therefore update seaborn.
+-See ClassicMachineLearning from part 1 for heatmap.
+
+Performance of Random Forest and MLP classifiers is extremely high. I wasn't expecting it. I only trained kNN and NB later
+to see if the task is easy or these classifiers are really good.
+
+Could not use tsfresh correctly. Will move on to the RNN.
