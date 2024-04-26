@@ -8,3 +8,12 @@ Performance of Random Forest and MLP classifiers is extremely high. I wasn't exp
 to see if the task is easy or these classifiers are really good.
 
 Could not use tsfresh correctly. Will move on to the RNN.
+
+Dataset object was tested and works well. Realized data is already minmaxed. And in dataset, i do unsqueeze so the LSTM accepts my inputs.
+
+RNN training and testing is implemented. However, output of LSTM is the same for all samples in validation set. I believe it is overfitting the majority class.
+When I implement the dataloader that is balanced, it just predicts 0 for all.
+
+Implemented Bidirectional LSTM. Same problem.
+
+Will start with CNN.

@@ -5,12 +5,14 @@ from torch.utils.data import Dataset
 import torch
 
 class CustomTimeSeriesDataset(Dataset):
-    def __init__(self, csv, transform=None, target_transform=None):
+    def __init__(self, csv,LSTM=False):
         df=pd.read_csv(csv)
-        self.timeseries=torch.from_numpy(df.values[:,0:-1]).float().unsqueeze(2)
-        self.labels=torch.from_numpy(df.values[:,-1]).float().unsqueeze(1)
-        self.transform = transform
-        self.target_transform = target_transform
+        if LSTM:
+            self.timeseries=torch.from_numpy(df.values[:,0:-1]).float().unsqueeze(2)
+            self.labels=torch.from_numpy(df.values[:,-1]).float().unsqueeze(1)
+        else:
+            self.timeseries=torch.from_numpy(df.values[:,0:-1]).float()
+            self.labels=torch.from_numpy(df.values[:,-1]).float()
 
     def __len__(self):
         return len(self.timeseries)
@@ -18,8 +20,4 @@ class CustomTimeSeriesDataset(Dataset):
     def __getitem__(self, idx):
         timeserie = self.timeseries[idx] ### THIS IS BECAUSE LSTM (with batch_first=True) expects a 3D tensor (seq_len, batch, input_size), and input_size is 1.
         label = self.labels[idx]
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            label = self.target_transform(label)
         return timeserie, label
