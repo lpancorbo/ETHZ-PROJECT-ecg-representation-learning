@@ -9,11 +9,32 @@ to see if the task is easy or these classifiers are really good.
 
 Could not use tsfresh correctly. Will move on to the RNN.
 
-Dataset object was tested and works well. Realized data is already minmaxed. And in dataset, i do unsqueeze so the LSTM accepts my inputs.
+Dataset object was tested and works well. Realized data is already minmaxed. And in dataset, i do minor alterations in dataset object,
+depending on the model. Do unsqueeze so the LSTM accepts my inputs, same for CNN.
 
 RNN training and testing is implemented. However, output of LSTM is the same for all samples in validation set. I believe it is overfitting the majority class.
 When I implement the dataloader that is balanced, it just predicts 0 for all.
 
 Implemented Bidirectional LSTM. Same problem.
 
-Will start with CNN.
+Started with simple CNN. Looks like im having the same problem.
+
+After training first simpleCNN and then simplererCNN, realized LSTM might be too simple to differentiate between classes.
+
+HAD PROBLEMS WITH ACCURACY COMPUTATION. Now the training is going better for the CNN. Reorganized the code, with a ModelZoo, training file and evaluation file.
+
+If try to show plt figures in terminal, program crashes and cannot save them.
+
+simpleCNN is overfitting. Somehow good on val, bad on train.
+
+TO DO (part 1):
+Implement simple ML models with engineered features
+Train LSTM and BidirectionalLSTM again
+simpleCNN is overfitting. Somehow good on val, bad on train.
+Implement ResCNN
+Implement Tranformer
+
+(questions need to be discussed)
+
+TO DO (part 2):
+All
