@@ -36,12 +36,12 @@ Started transformer. Remember that future papers found layer normalization befor
 MAYBE TRY LAYER NORMALIZATION? ALSO FOR LSTMS
 
 TO DO (part 1):
-Implement simple ML models with engineered features - SOMEONE ELSE
-Train LSTM and BidirectionalLSTM again - SOMEONE ELSE
+Implement simple ML models with engineered features
+Train LSTM and BidirectionalLSTM again
+in CNN, ResCNN, maybe try dropout to reduce overfitting. However, there is no great evidence of overfitting, as validation error doesn't increase
+(questions need to be discussed)
 
 Implement Tranformer - LAYER NORMALIZATION BEFORE
-
-(questions need to be discussed)
 
 TO DO (part 2):
 All
