@@ -25,14 +25,21 @@ HAD PROBLEMS WITH ACCURACY COMPUTATION. Now the training is going better for the
 
 If try to show plt figures in terminal, program crashes and cannot save them.
 
-simpleCNN is overfitting. Somehow good on val, bad on train.
+THIS WAS SOLVED: Was a problem in comparing numbers to keep best model for analysis.
+simpleCNN is overfitting. Somehow good on val, bad on train. Validation loss is not the same when i continue the training where i stopped on the previous time. Even with laoding the state of model and scheduler and optimizer.
+
+Still cannot make LSTM learn well. After 3h of training a very complex model, it still doesn't work.
+
+ResCNN learns super fast and performs really well! As good as simpleCNN, and maybe better. 
+
+Started transformer. Remember that future papers found layer normalization before attention is better. Will try.  
+MAYBE TRY LAYER NORMALIZATION? ALSO FOR LSTMS
 
 TO DO (part 1):
-Implement simple ML models with engineered features
-Train LSTM and BidirectionalLSTM again
-simpleCNN is overfitting. Somehow good on val, bad on train.
-Implement ResCNN
-Implement Tranformer
+Implement simple ML models with engineered features - SOMEONE ELSE
+Train LSTM and BidirectionalLSTM again - SOMEONE ELSE
+
+Implement Tranformer - LAYER NORMALIZATION BEFORE
 
 (questions need to be discussed)
 

@@ -7,28 +7,37 @@ import torch.nn.functional as F
 
 #Define my LSTM model
 class simpleLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, dropout_rate=0):
+    def __init__(self):
         super(simpleLSTM, self).__init__()
+        input_size=1
+        hidden_size=128
+        num_layers=5
+        dropout_rate=0
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers,dropout=dropout_rate, batch_first=True, bias=False)
-        self.fc = nn.Linear(hidden_size, 1)
+        self.fc = nn.Linear(hidden_size, 64)
+        self.fc2 = nn.Linear(64,1)
+        self.act = nn.ELU()
 
     def forward(self, x):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device) 
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         
         out, _ = self.lstm(x, (h0, c0))
-        out = self.fc(out[:, -1, :])
-        #OUTPUT IS NOT A PROBABILITY; SO WE USE BCEWithLogitsLoss
+        out = self.act(self.fc(out[:, -1, :]))
+        out = self.fc2(out)
+        out = F.sigmoid(out)
         return out
 
 # Create new bidirectional LSTM
 class BiLSTM(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, dropout_rate=0):
+    def __init__(self):
         super(BiLSTM, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
+        input_size=1
+        hidden_size=128
+        num_layers=5
+        dropout_rate=0
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=dropout_rate, batch_first=True, bidirectional=True)
         self.fc = nn.Linear(hidden_size, 64)
         self.fc2 = nn.Linear(64,1)
@@ -42,7 +51,7 @@ class BiLSTM(nn.Module):
         out = self.fc(out)
         out = F.elu(out)
         out = self.fc2(out)
-        #OUTPUT IS NOT A PROBABILITY; SO WE USE BCEWithLogitsLoss
+        out = F.sigmoid(out)
         return out
     
 #Define my CNN models
@@ -70,7 +79,7 @@ class simpleCNN(nn.Module):
         out=out.view(out.size(0), -1)
         out=self.act(self.fc1(out))
         out=self.fc2(out)
-        #OUTPUT IS NOT A PROBABILITY; SO WE USE BCEWithLogitsLoss
+        out = F.sigmoid(out)
         return out
     
 #Define my CNN model with residual connections
@@ -81,7 +90,7 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
         self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
         self.bn1 = nn.BatchNorm1d(out_channels)
-        self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size, stride, padding)
+        self.conv2 = nn.Conv1d(out_channels, in_channels, kernel_size, stride, padding)
         self.bn2 = nn.BatchNorm1d(out_channels)
         self.act = nn.ELU()
         
@@ -96,25 +105,33 @@ class ResCNN(nn.Module):
     def __init__(self):
         super(ResCNN, self).__init__()
         #Use resblocks
-        self.resblock1 = ResBlock(1, 32, 3, 2, 1)
-        self.maxpool1 = nn.MaxPool1d(2)
-        self.resblock2 = ResBlock(32, 64, 3, 2, 1)
-        self.maxpool2 = nn.MaxPool1d(2)
-        self.resblock3 = ResBlock(64, 128, 3, 2, 1)
-        self.maxpool3 = nn.MaxPool1d(2)
-        self.fc1 = nn.Linear(384, 128)
+        self.conv1 = nn.Conv1d(1, 24, 5, padding=1, stride=3)
+        self.bn1 = nn.BatchNorm1d(24)
+        self.resblock1 = ResBlock(24, 24, 3, 1, 1)
+        self.resblock2 = ResBlock(24, 24, 3, 1, 1)
+        self.resblock3 = ResBlock(24, 24, 3, 1, 1)
+        self.maxpoolf = nn.MaxPool1d(2)
+        self.fc1 = nn.Linear(744, 128)
         self.fc2 = nn.Linear(128, 1)
         self.act = nn.ELU()
 
     def forward(self, x):
-        out=self.maxpool1(self.resblock1(x))
-        out=self.maxpool2(self.resblock2(out))
-        out=self.maxpool3(self.resblock3(out))
+        out=self.bn1(self.conv1(x))
+        out=self.resblock3(self.resblock2(self.resblock1(out)))
+        out=self.maxpoolf(out)
         out=out.view(out.size(0), -1)
         out=self.act(self.fc1(out))
         out=self.fc2(out)
-        #OUTPUT IS NOT A PROBABILITY; SO WE USE BCEWithLogitsLoss
+        out = F.sigmoid(out)
         return out
-    
-#Define my model with attention, not recurrent
 
+#Define my model with attention, not recurrent
+class Transformer(nn.Module):
+    def __init__(self):
+        super(Transformer, self).__init__()
+        self.transformer = nn.Transformer(d_model=1, nhead=4, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=128, batch_first=True, norm_first=True)
+
+    def forward(self, x):   
+        out = self.transformer(x, x)
+        out = F.sigmoid(out)
+        return out

@@ -10,16 +10,31 @@ import torch.nn.functional as F
 import torch
 import os
 import matplotlib.pyplot as plt
-from ModelZoo import simpleCNN, simpleLSTM, BiLSTM
+from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer
 from sklearn.metrics import roc_curve,roc_auc_score
 
 #Define model to be trained
-name="simpleCNN"
-model = simpleCNN()
-nettype='CNN'
+name="Transformer"
+model = Transformer()
+nettype='Transformer'
+continue_training = False
 
-#If we want to continue training from a previous model
-model.load_state_dict(torch.load(os.path.join('Model_Parameters', f'{name}_best_parameters.pth')))
+#Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
+#For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
+#For simpleLSTM: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
+optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0, nesterov=True)
+
+#Learning rate scheduler
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+
+if continue_training:
+    model.load_state_dict(torch.load(os.path.join('Model_Parameters', f'{name}_best_parameters.pth')))
+    checkpoint = torch.load(os.path.join('Model_Parameters', f'{name}_scheduler_optimizer_state.pth'))
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+
+# Number of epochs
+n_epochs = 1000
 
 ## Initialize dataset and do train validation split
 
@@ -36,38 +51,35 @@ train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 ## Training loop
 
 #Initialize train dataloader
-train_loader = weighted_sampler_dataloader(train_dataset, batch_size=256, repl=True)
-#train_loader = DataLoader(train_dataset, batch_size=512, shuffle=True) #was not using this because of the weighted sampler
+train_loader = weighted_sampler_dataloader(train_dataset, batch_size=512, repl=True)
+#train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) #was not using this because of the weighted sampler
 
 #Initialize validation loader THE BATCH SIZE NEEDS TO BE AS BIG AS POSSIBLE BECAUSE THERE ARE NO GRADIENTS. IF I CAN RUN ALL VAL SET IN PARALLEL, BETTER!
 val_loader = DataLoader(val_dataset, batch_size=2328, shuffle=False)
 
-#Define loss function and optimizer as BCEWithLogitsLoss, as output is not a probability
-criterion = nn.BCEWithLogitsLoss()
-
-#Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
-optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=0.0, nesterov=True)
-
-#Learning rate scheduler
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
-
-# Number of epochs
-n_epochs = 1000
+#Define loss function and optimizer as BCE, as output is NOW a probability
+criterion = nn.BCELoss()
 
 #Sent model to device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 model.to(device)
 
+# Move optimizer state to device
+for state in optimizer.state.values():
+    for k, v in state.items():
+        if isinstance(v, torch.Tensor):
+            state[k] = v.to(device)
+            
 # Loop over the dataset multiple times
 #make initial validation loss infinite
 val_loss = float('inf')
 
 #Set the val loss array with the size of the number of epochs
-all_val_loss = [0] * n_epochs
-all_train_loss = [0] * n_epochs
-all_outputs = [0] * n_epochs
-all_labels = [0] * n_epochs
+all_val_loss = [float('inf')] * n_epochs
+all_train_loss = [float('inf')] * n_epochs
+all_outputs = [float('inf')] * n_epochs
+all_labels = [float('inf')] * n_epochs
 
 #To save the best model later
 best_model = type(model)()
@@ -95,7 +107,7 @@ for epoch in range(n_epochs):
         if i==0:
             all_train_loss[epoch]=loss.cpu().detach().numpy()
             #Save the outputs and correct labels of all batches, as numpy arrays
-            all_outputs[epoch]=F.sigmoid(outputs).cpu().detach().numpy()
+            all_outputs[epoch]=outputs.cpu().detach().numpy()
             all_labels[epoch]=labels.cpu().detach().numpy()
 
     # Validation loop
@@ -108,16 +120,26 @@ for epoch in range(n_epochs):
             val_outputs = model(inputs)
             val_loss = criterion(val_outputs, labels)
 
-    all_val_loss[epoch]=val_loss.cpu().detach().numpy()
-    print(f'Epoch {epoch+1}/{n_epochs}, Validation Loss: {val_loss}%')
-
+    val_loss = val_loss.cpu().detach().numpy()
     #keep track of best model if validation loss is minimum
-    if val_loss == min(all_val_loss):
+    if val_loss < min(all_val_loss):
+        print(f'Epoch {epoch+1}/{n_epochs}, Validation Loss: {val_loss}%, new best model!')
         # Save the model parameters,in case we lose them
         best_model.load_state_dict(model.state_dict())  # Copy the model parameters
-        torch.save(best_model.state_dict(), os.path.join('Model_Parameters', f'{name}_best_parameters.pth'))
+    else:
+        print(f'Epoch {epoch+1}/{n_epochs}, Validation Loss: {val_loss}%')
 
-val_outputs = F.sigmoid(val_outputs).cpu().detach().numpy()  
+    all_val_loss[epoch]=val_loss
+
+torch.save({
+    'optimizer_state_dict': optimizer.state_dict(),
+    'scheduler_state_dict' : scheduler.state_dict(),
+    }, os.path.join('Model_Parameters', f'{name}_scheduler_optimizer_state.pth'))
+
+torch.save(best_model.state_dict(), os.path.join('Model_Parameters', f'{name}_best_parameters.pth'))
+
+val_outputs = val_outputs.cpu().detach().numpy()  
+
 print('Finished Training')
 
 all_outputs = np.concatenate(all_outputs)
@@ -151,7 +173,7 @@ axs[1, 0].legend(['Validation Loss', 'Train Loss'])
 
 #EVALUATION
 #Prepare test dataset
-dataset_test = CustomTimeSeriesDataset('ptbdb_test.csv', NetType='CNN')
+dataset_test = CustomTimeSeriesDataset('ptbdb_test.csv', NetType=nettype)
 test_loader = DataLoader(dataset_test, batch_size=2910, shuffle=False)
 
 # Test loop
@@ -164,9 +186,8 @@ with torch.no_grad():
         labels = labels.to(device)
 
         # Forward pass and prepare for plot
-        outputs = F.sigmoid(best_model(inputs)).detach().cpu().numpy()
+        outputs = best_model(inputs).detach().cpu().numpy()
         labels=labels.detach().cpu().numpy()
-
 
 #Plot ROC curve
 fpr, tpr, _ = roc_curve(labels, outputs)
@@ -181,4 +202,4 @@ axs[1, 1].legend(loc="lower right")
 
 #Save all figures
 plt.savefig(os.path.join('Figures', f'{name}_train_and_test.png'))
-plt.show()
+plt.close()

@@ -8,7 +8,7 @@ from torch.utils.data.sampler import WeightedRandomSampler
 class CustomTimeSeriesDataset(Dataset):
     def __init__(self, csv,NetType=None):
         df=pd.read_csv(csv)
-        if NetType=="LSTM":
+        if NetType=="LSTM" or NetType=="Transformer":
             self.timeseries=torch.from_numpy(df.values[:,0:-1]).float().unsqueeze(2)
             self.labels=torch.from_numpy(df.values[:,-1]).float().unsqueeze(1)
         elif NetType=="CNN":
