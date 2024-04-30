@@ -41,7 +41,10 @@ Train LSTM and BidirectionalLSTM again
 in CNN, ResCNN, maybe try dropout to reduce overfitting. However, there is no great evidence of overfitting, as validation error doesn't increase
 (questions need to be discussed)
 
-Implement Tranformer - LAYER NORMALIZATION BEFORE
+TRAIN EVERYTHING JUST FOR 100/200 EPOCHS
+Train ResCNN and simpleCNN only for 100/200 epochs, to conclude that ResCNN is faster to train.
+
+APPLY TRANSFORMER ENCODER BLOCK DIRECTLY ON DATA SO WE CAN SEE ACTIVATION MAPS.
 
 TO DO (part 2):
 All

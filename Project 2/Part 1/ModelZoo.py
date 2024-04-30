@@ -129,9 +129,26 @@ class ResCNN(nn.Module):
 class Transformer(nn.Module):
     def __init__(self):
         super(Transformer, self).__init__()
-        self.transformer = nn.Transformer(d_model=1, nhead=4, num_encoder_layers=2, num_decoder_layers=2, dim_feedforward=128, batch_first=True, norm_first=True)
-
-    def forward(self, x):   
-        out = self.transformer(x, x)
+        self.conv1 = nn.Conv1d(1, 32, 3, padding=1, stride=2)
+        self.bn1 = nn.BatchNorm1d(32)
+        self.maxpool1 = nn.MaxPool1d(2)
+        self.conv2 = nn.Conv1d(32, 64, 3, padding=1, stride=2)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.maxpool2 = nn.MaxPool1d(2)
+        self.conv3 = nn.Conv1d(64, 128, 3, padding=1, stride=2)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.maxpool3 = nn.MaxPool1d(2)
+        self.TransformerEncoder = nn.TransformerEncoder(nn.TransformerEncoderLayer(d_model=384, nhead=1,norm_first=True,batch_first=True,dim_feedforward=1), num_layers=2,enable_nested_tensor=False)
+        self.linear2 = nn.Linear(384,128)
+        self.linear3 = nn.Linear(128,1)
+        self.act = nn.ELU()
+    def forward(self, x):
+        out=self.maxpool1(self.bn1(self.conv1(x)))
+        out=self.maxpool2(self.bn2(self.conv2(out)))
+        out=self.maxpool3(self.bn3(self.conv3(out)))
+        out=out.view(out.size(0), -1)
+        out=self.TransformerEncoder(out)
+        out=self.act(self.linear2(out))
+        out=self.linear3(out)
         out = F.sigmoid(out)
         return out

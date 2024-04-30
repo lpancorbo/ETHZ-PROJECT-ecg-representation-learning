@@ -14,15 +14,15 @@ from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer
 from sklearn.metrics import roc_curve,roc_auc_score
 
 #Define model to be trained
-name="Transformer"
-model = Transformer()
-nettype='Transformer'
+name="simpleCNN"
+model = simpleCNN()
+nettype='CNN'
 continue_training = False
 
 #Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
 #For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
 #For simpleLSTM: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0, nesterov=True)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
 
 #Learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
@@ -34,7 +34,7 @@ if continue_training:
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
 # Number of epochs
-n_epochs = 1000
+n_epochs = 200
 
 ## Initialize dataset and do train validation split
 
@@ -51,7 +51,7 @@ train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 ## Training loop
 
 #Initialize train dataloader
-train_loader = weighted_sampler_dataloader(train_dataset, batch_size=512, repl=True)
+train_loader = weighted_sampler_dataloader(train_dataset, batch_size=128, repl=True)
 #train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) #was not using this because of the weighted sampler
 
 #Initialize validation loader THE BATCH SIZE NEEDS TO BE AS BIG AS POSSIBLE BECAUSE THERE ARE NO GRADIENTS. IF I CAN RUN ALL VAL SET IN PARALLEL, BETTER!
