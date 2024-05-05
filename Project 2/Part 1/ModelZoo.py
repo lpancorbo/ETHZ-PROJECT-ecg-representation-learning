@@ -3,6 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pad_packed_sequence
 
 
 #Define my LSTM model
@@ -10,22 +11,25 @@ class simpleLSTM(nn.Module):
     def __init__(self):
         super(simpleLSTM, self).__init__()
         input_size=1
-        hidden_size=128
-        num_layers=5
+        hidden_size=32
+        num_layers=1
         dropout_rate=0
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers,dropout=dropout_rate, batch_first=True, bias=False)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=dropout_rate, batch_first=True, bias=True)
         self.fc = nn.Linear(hidden_size, 64)
-        self.fc2 = nn.Linear(64,1)
+        self.fc2 = nn.Linear(64, 1)
         self.act = nn.ELU()
 
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device) 
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        # h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        # c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+
+        h0 = torch.zeros(self.num_layers, x.batch_sizes[0], self.hidden_size).to(x.data.device)
+        c0 = torch.zeros(self.num_layers, x.batch_sizes[0], self.hidden_size).to(x.data.device)
         
-        out, _ = self.lstm(x, (h0, c0))
-        out = self.act(self.fc(out[:, -1, :]))
+        out, (h_n, c_n) = self.lstm(x, (h0, c0))
+        out = self.act(self.fc(h_n[-1]))
         out = self.fc2(out)
         out = F.sigmoid(out)
         return out
@@ -35,20 +39,22 @@ class BiLSTM(nn.Module):
     def __init__(self):
         super(BiLSTM, self).__init__()
         input_size=1
-        hidden_size=128
-        num_layers=5
+        hidden_size=32
+        num_layers=1
         dropout_rate=0
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, dropout=dropout_rate, batch_first=True, bidirectional=True)
         self.fc = nn.Linear(hidden_size, 64)
         self.fc2 = nn.Linear(64,1)
 
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers * 2, x.size(0), self.hidden_size).to(x.device)
-        c0 = torch.zeros(self.num_layers * 2, x.size(0), self.hidden_size).to(x.device)
+        h0 = torch.zeros(self.num_layers * 2, x.batch_sizes[0], self.hidden_size).to(x.data.device)
+        c0 = torch.zeros(self.num_layers * 2, x.batch_sizes[0], self.hidden_size).to(x.data.device)
 
-        _, (_,cf) = self.lstm(x, (h0, c0))
-        out = F.elu(cf[-1, :, :]) #try to escape local minima
-        out = self.fc(out)
+        _, (h_n, c_n) = self.lstm(x, (h0, c0))
+        #out = F.elu(cf[-1, :, :]) #try to escape local minima
+        out = self.fc(h_n[-1])
         out = F.elu(out)
         out = self.fc2(out)
         out = F.sigmoid(out)

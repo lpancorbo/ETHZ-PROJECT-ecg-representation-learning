@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from torch import nn
 from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pack_padded_sequence, unpad_sequence
 from MyDataset import CustomTimeSeriesDataset, weighted_sampler_dataloader
 from torch.utils.data.sampler import WeightedRandomSampler
 from torch.utils.data import random_split
@@ -14,15 +15,18 @@ from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer
 from sklearn.metrics import roc_curve,roc_auc_score
 
 #Define model to be trained
-name="simpleCNN"
-model = simpleCNN()
-nettype='CNN'
+name = "lstm_padding"
+model = simpleLSTM()
+nettype = 'LSTM'
 continue_training = False
+batch_size = 8
 
 #Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
 #For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
 #For simpleLSTM: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
+# optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+
 
 #Learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
@@ -51,7 +55,7 @@ train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 ## Training loop
 
 #Initialize train dataloader
-train_loader = weighted_sampler_dataloader(train_dataset, batch_size=128, repl=True)
+train_loader = weighted_sampler_dataloader(train_dataset, batch_size=batch_size, repl=True)
 #train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) #was not using this because of the weighted sampler
 
 #Initialize validation loader THE BATCH SIZE NEEDS TO BE AS BIG AS POSSIBLE BECAUSE THERE ARE NO GRADIENTS. IF I CAN RUN ALL VAL SET IN PARALLEL, BETTER!
@@ -90,6 +94,15 @@ for epoch in range(n_epochs):
 
     # Training loop
     for i, (inputs, labels) in enumerate(train_loader):
+
+        if nettype == 'LSTM':
+            lengths = []
+            for sequence in inputs[:, :, 0]:
+                # length = torch.nonzero(sequence).size(0)
+                # lengths.append(length)
+                lengths.append(sequence.size(0))
+            inputs = pack_padded_sequence(inputs, lengths=lengths, batch_first=True, enforce_sorted=False)
+
         inputs = inputs.to(device)
         labels = labels.to(device)
 
@@ -99,7 +112,6 @@ for epoch in range(n_epochs):
         # Forward pass
         outputs = model(inputs)
         loss = criterion(outputs, labels)
-
         # Backward pass and optimization
         loss.backward()
         optimizer.step()
@@ -114,6 +126,14 @@ for epoch in range(n_epochs):
     model.eval()  # Set model to evaluation mode
     with torch.no_grad():
         for i, (inputs, labels) in enumerate(val_loader):
+            if nettype == 'LSTM':
+                lengths = []
+                for sequence in inputs[:, :, 0]:
+                    # length = torch.nonzero(sequence).size(0)
+                    # lengths.append(length)
+                    lengths.append(sequence.size(0))
+                inputs = pack_padded_sequence(inputs, lengths=lengths, batch_first=True, enforce_sorted=False)
+
             inputs = inputs.to(device)
             labels = labels.to(device)
 
@@ -138,7 +158,7 @@ torch.save({
 
 torch.save(best_model.state_dict(), os.path.join('Model_Parameters', f'{name}_best_parameters.pth'))
 
-val_outputs = val_outputs.cpu().detach().numpy()  
+val_outputs = val_outputs.cpu().detach().numpy()
 
 print('Finished Training')
 
@@ -182,6 +202,14 @@ best_model.to(device)
 best_model.eval()  # Set best model to evaluation mode
 with torch.no_grad():
     for i, (inputs, labels) in enumerate(test_loader):
+        if nettype == 'LSTM':
+            lengths = []
+            for sequence in inputs[:, :, 0]:
+                # length = torch.nonzero(sequence).size(0)
+                # lengths.append(length)
+                lengths.append(sequence.size(0))
+            inputs = pack_padded_sequence(inputs, lengths=lengths, batch_first=True, enforce_sorted=False)
+
         inputs = inputs.to(device)
         labels = labels.to(device)
 
