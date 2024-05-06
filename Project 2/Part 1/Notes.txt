@@ -7,7 +7,7 @@ Due to seaborn version, heatmap figure is bad. Check if later we can use newer p
 Performance of Random Forest and MLP classifiers is extremely high. I wasn't expecting it. I only trained kNN and NB later
 to see if the task is easy or these classifiers are really good.
 
-Could not use tsfresh correctly. Will move on to the RNN.
+Could not use tsfresh correctly. Will move on to the RNN. -- SOLVED
 
 Dataset object was tested and works well. Realized data is already minmaxed. And in dataset, i do minor alterations in dataset object,
 depending on the model. Do unsqueeze so the LSTM accepts my inputs, same for CNN.
