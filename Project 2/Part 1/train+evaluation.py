@@ -15,17 +15,17 @@ from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer
 from sklearn.metrics import roc_curve,roc_auc_score
 
 #Define model to be trained
-name = "lstm_padding"
-model = simpleLSTM()
-nettype = 'LSTM'
+name = "Tranformer"
+model = Transformer()
+nettype = 'Transformer'
 continue_training = False
 batch_size = 8
 
 #Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
 #For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
 #For simpleLSTM: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
+#FOR LSTM, USED BY JONAoptimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
 
 
 #Learning rate scheduler
@@ -38,7 +38,7 @@ if continue_training:
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
 # Number of epochs
-n_epochs = 200
+n_epochs = 50
 
 ## Initialize dataset and do train validation split
 
