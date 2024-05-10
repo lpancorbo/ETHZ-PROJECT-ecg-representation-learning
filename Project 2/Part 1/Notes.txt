@@ -16,6 +16,11 @@ ResCNN learns super fast and performs really well! As good as simpleCNN, and may
 
 Remember that future papers found layer normalization before attention is better. Will try.  
 
+PART 2, Q1: 
+- dataset_q1.py same as from part 1 for CNN but modified labels to long() for CrossEntropy criterion
+- train_test_q1.py modifications for multiclass problem in figures, labels squeezing and optimizer (CrossEntropy)
+- model_q1.py modify last layer to get output size of 5
+
 TO DO (part 1):
 Implement simple ML models with engineered features
 Train LSTM and BidirectionalLSTM again
