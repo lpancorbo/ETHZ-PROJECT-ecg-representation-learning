@@ -11,21 +11,21 @@ import torch.nn.functional as F
 import torch
 import os
 import matplotlib.pyplot as plt
-from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer
+from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer, TransformerWithAttentionOutputted
 from sklearn.metrics import roc_curve,roc_auc_score
 
 #Define model to be trained
-name = "Tranformer"
-model = Transformer()
+name = "TransformerWithAttentionOutputted"
+model = TransformerWithAttentionOutputted()
 nettype = 'Transformer'
 continue_training = False
-batch_size = 8
+batch_size = 32
 
 #Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
 #For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
 #For simpleLSTM: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
-#FOR LSTM, USED BY JONAoptimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+#FOR LSTM, USED BY JONA: optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
 #Learning rate scheduler
@@ -38,7 +38,7 @@ if continue_training:
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
 # Number of epochs
-n_epochs = 50
+n_epochs = 200
 
 ## Initialize dataset and do train validation split
 
@@ -110,7 +110,10 @@ for epoch in range(n_epochs):
         optimizer.zero_grad()
 
         # Forward pass
-        outputs = model(inputs)
+        if name=="TransformerWithAttentionOutputted":
+            outputs,_ = model(inputs)
+        else:
+            outputs = model(inputs)
         loss = criterion(outputs, labels)
         # Backward pass and optimization
         loss.backward()
@@ -137,7 +140,10 @@ for epoch in range(n_epochs):
             inputs = inputs.to(device)
             labels = labels.to(device)
 
-            val_outputs = model(inputs)
+            if name=="TransformerWithAttentionOutputted":
+                val_outputs,_ = model(inputs)
+            else:
+                val_outputs = model(inputs)
             val_loss = criterion(val_outputs, labels)
 
     val_loss = val_loss.cpu().detach().numpy()
@@ -214,7 +220,10 @@ with torch.no_grad():
         labels = labels.to(device)
 
         # Forward pass and prepare for plot
-        outputs = best_model(inputs).detach().cpu().numpy()
+        if name=="TransformerWithAttentionOutputted":
+            outputs = best_model(inputs)[0].detach().cpu().numpy()
+        else:
+            outputs = best_model(inputs).detach().cpu().numpy()
         labels=labels.detach().cpu().numpy()
 
 #Plot ROC curve

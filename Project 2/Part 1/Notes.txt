@@ -12,8 +12,6 @@ Could not use tsfresh correctly. Will move on to the RNN. -- SOLVED
 Dataset object was tested and works well. Realized data is already minmaxed. And in dataset, i do minor alterations in dataset object,
 depending on the model. Do unsqueeze so the LSTM accepts my inputs, same for CNN.
 
-ResCNN learns super fast and performs really well! As good as simpleCNN, and maybe better. 
-
 Remember that future papers found layer normalization before attention is better. Will try.  
 
 TO DO (part 1):
