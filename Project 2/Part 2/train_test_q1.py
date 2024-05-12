@@ -16,11 +16,11 @@ from sklearn.metrics import roc_curve, auc, accuracy_score, balanced_accuracy_sc
 
 
 #Define model to be trained
-name = "ResCNN_mitbih"
+name = "ResCNNbatch16_mitbih"
 model = ResCNN()
 nettype = 'CNN'
 continue_training = False
-batch_size = 512
+batch_size = 16
 
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
 
@@ -34,7 +34,7 @@ if continue_training:
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
 # Number of epochs
-n_epochs = 2
+n_epochs = 200
 
 ## Initialize dataset and do train validation split
 
@@ -219,7 +219,7 @@ print(f"Balanced Accuracy: {balanced_accuracy}")
 for i in range(5):
     fpr, tpr, _ = roc_curve(labels == i, outputs[:, i])
     roc_auc = auc(fpr, tpr)
-    axs[1, 1].plot(fpr, tpr, lw=2, label=f'ROC curve (class {i}) (AUC = {roc_auc:.2f})')
+    axs[1, 1].plot(fpr, tpr, lw=2, label=f'ROC curve (class {i}) (AUC = {roc_auc:.4f})')
 
 # Plot the diagonal line for reference
 axs[1, 1].plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
