@@ -1,17 +1,14 @@
 #import libraries
 import numpy as np
-import pandas as pd
 from torch import nn
 from torch.utils.data import DataLoader
-from torch.nn.utils.rnn import pack_padded_sequence, unpad_sequence
+from torch.nn.utils.rnn import pack_padded_sequence
 from MyDataset import CustomTimeSeriesDataset, weighted_sampler_dataloader
-from torch.utils.data.sampler import WeightedRandomSampler
 from torch.utils.data import random_split
-import torch.nn.functional as F
 import torch
 import os
 import matplotlib.pyplot as plt
-from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer, TransformerWithAttentionOutputted
+from ModelZoo import TransformerWithAttentionOutputted
 from sklearn.metrics import roc_curve,roc_auc_score
 
 #Define model to be trained

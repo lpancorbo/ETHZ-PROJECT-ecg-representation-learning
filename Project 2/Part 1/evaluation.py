@@ -1,17 +1,12 @@
 #import libraries
-import numpy as np
-import pandas as pd
-from torch import nn
 from torch.utils.data import DataLoader
 from MyDataset import CustomTimeSeriesDataset
-from torch.utils.data.sampler import WeightedRandomSampler
-from torch.utils.data import random_split
 import torch.nn.functional as F
 import torch
 import os
 from sklearn.metrics import roc_curve,roc_auc_score
 import matplotlib.pyplot as plt
-from ModelZoo import simpleCNN, simpleLSTM, BiLSTM
+from ModelZoo import simpleCNN
 
 #Load trained model
 best_model=simpleCNN()
