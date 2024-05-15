@@ -198,6 +198,7 @@ class TripletLossVaryingLength(torch.nn.modules.loss._Loss):
         batch_size = batch.size(0)
         train_size = train.size(0)
         max_length = train.size(2)
+        feature_dim = batch.size(1)
 
         # For each batch element, we pick nb_random_samples possible random
         # time series in the training set (choice of batches from where the
@@ -261,21 +262,27 @@ class TripletLossVaryingLength(torch.nn.modules.loss._Loss):
             0, high=lengths_samples[i, j] - lengths_neg[i, j] + 1
         ) for j in range(batch_size)] for i in range(self.nb_random_samples)])
 
+        # Anchors:
         anchors = [batch[
             j: j + 1, :,
             beginning_batches[j]: beginning_batches[j] + random_length[j]
         ] for j in range(batch_size)]
-        for anchor in anchors:
-            print(f"Anchor: {anchor.shape}")
+
+        anchors = [torch.cat((anchor, torch.zeros(1, feature_dim, max_length - anchor.size(2)).to(anchor.device)),
+                             dim=2) for anchor in anchors]
 
         representation = torch.cat([encoder(anchor) for anchor in anchors])  # Anchors representations
 
-        positive_representation = torch.cat([encoder(
-            batch[
-                j: j + 1, :,
-                end_positive[j] - lengths_pos[j]: end_positive[j]
-            ]
-        ) for j in range(batch_size)])  # Positive samples representations
+        # Positives:
+        positives = [batch[
+            j: j + 1, :,
+            end_positive[j] - lengths_pos[j]: end_positive[j]
+        ] for j in range(batch_size)]
+
+        positives = [torch.cat((positive, torch.zeros(1, feature_dim, max_length - positive.size(2)).to(positive.device)),
+                             dim=2) for positive in positives]
+
+        positive_representation = torch.cat([encoder(positive) for positive in positives])  # Positive samples representations
 
         size_representation = representation.size(1)
         # Positive loss: -logsigmoid of dot product between anchor and positive
@@ -297,13 +304,16 @@ class TripletLossVaryingLength(torch.nn.modules.loss._Loss):
         for i in range(self.nb_random_samples):
             # Negative loss: -logsigmoid of minus the dot product between
             # anchor and negative representations
-            negative_representation = torch.cat([encoder(
-                train[samples[i, j]: samples[i, j] + 1][
+            negatives = [train[samples[i, j]: samples[i, j] + 1][
                     :, :,
                     beginning_samples_neg[i, j]:
                     beginning_samples_neg[i, j] + lengths_neg[i, j]
-                ]
-            ) for j in range(batch_size)])
+                ] for j in range(batch_size)]
+
+            negatives = [torch.cat((negative, torch.zeros(1, feature_dim, max_length - negative.size(2)).to(negative.device)),
+                                   dim=2) for negative in negatives]
+
+            negative_representation = torch.cat([encoder(negative.to(batch.device)) for negative in negatives])
             loss += multiplicative_ratio * -torch.mean(
                 torch.nn.functional.logsigmoid(-torch.bmm(
                     representation.view(batch_size, 1, size_representation),

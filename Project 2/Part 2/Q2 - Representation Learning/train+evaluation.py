@@ -97,7 +97,6 @@ for epoch in range(n_epochs):
 
         # Zero the parameter gradients
         optimizer.zero_grad()
-        print(f"In: {inputs.shape}")
         loss = criterion(inputs, model, dataset.timeseries)
         # Backward pass and optimization
         loss.backward()

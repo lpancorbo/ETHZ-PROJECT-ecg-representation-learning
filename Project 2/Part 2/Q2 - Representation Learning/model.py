@@ -45,5 +45,4 @@ class ResCNN(nn.Module):
         out = self.resblock3(self.resblock2(self.resblock1(out)))
         out = self.maxpoolf(out)
         out = out.view(out.size(0), -1)
-        print(f"Out: {out.shape}")
         return out
