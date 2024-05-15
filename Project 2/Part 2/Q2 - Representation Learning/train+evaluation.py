@@ -20,7 +20,7 @@ name = "res_cnn_contrastive"
 model = ResCNN()
 nettype = 'CNN'
 continue_training = False
-batch_size = 32
+batch_size = 128
 
 #Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
 #For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
@@ -39,7 +39,7 @@ if continue_training:
     scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
 # Number of epochs
-n_epochs = 200
+n_epochs = 50
 
 ## Initialize dataset and do train validation split
 
