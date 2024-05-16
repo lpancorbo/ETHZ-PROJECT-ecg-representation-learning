@@ -12,12 +12,13 @@ def last_nonzero_index(row):
 
 
 class CustomTimeSeriesDataset(Dataset):
-    def __init__(self, csv, NetType=None):
+    def __init__(self, csv, NetType=None, nan=False):
         df = pd.read_csv(csv)
         timeseries = df.values[:, :-1]
-        lengths = np.apply_along_axis(last_nonzero_index, axis=1, arr=timeseries)
-        mask = np.arange(timeseries.shape[1]) > lengths[:, np.newaxis]
-        timeseries[mask] = np.nan
+        if nan:
+            lengths = np.apply_along_axis(last_nonzero_index, axis=1, arr=timeseries)
+            mask = np.arange(timeseries.shape[1]) > lengths[:, np.newaxis]
+            timeseries[mask] = np.nan
         if NetType == "LSTM":
             self.timeseries = torch.from_numpy(timeseries).float().unsqueeze(2)
             self.labels = torch.from_numpy(df.values[:, -1]).float().unsqueeze(1)

@@ -1,0 +1,5 @@
+Autoencoder pretrained ptbdb embeddings:
+Random Forest:  0.9583333333333334
+MLP:  0.9803270917278977
+kNN:  0.9525415562515057
+Naive Bayes:  0.6863701578192253

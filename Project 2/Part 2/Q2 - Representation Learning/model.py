@@ -26,9 +26,10 @@ class ResBlock(nn.Module):
         out = self.act(out)
         return out
 
-class ResCNN(nn.Module):
-    def __init__(self):
-        super(ResCNN, self).__init__()
+
+class Encoder(nn.Module):
+    def __init__(self, embedding_dim):
+        super().__init__()
         #Use resblocks
         self.conv1 = nn.Conv1d(1, 24, 5, padding=1, stride=3)
         self.bn1 = nn.BatchNorm1d(24)
@@ -36,8 +37,7 @@ class ResCNN(nn.Module):
         self.resblock2 = ResBlock(24, 24, 3, 1, 1)
         self.resblock3 = ResBlock(24, 24, 3, 1, 1)
         self.maxpoolf = nn.MaxPool1d(2)
-        self.fc1 = nn.Linear(744, 128)
-        self.fc2 = nn.Linear(128, 5)
+        self.fc1 = nn.Linear(744, embedding_dim)
         self.act = nn.ELU()
 
     def forward(self, x):
@@ -45,4 +45,57 @@ class ResCNN(nn.Module):
         out = self.resblock3(self.resblock2(self.resblock1(out)))
         out = self.maxpoolf(out)
         out = out.view(out.size(0), -1)
+        out = self.fc1(out)
+        return out
+
+
+class Decoder(nn.Module):
+    def __init__(self, embedding_dim=744, out_len=187):
+        super(Decoder, self).__init__()
+        self.enc_dim = embedding_dim
+        self.out_len = out_len
+        # Use transposed convolutions
+        self.fc = nn.Linear(self.enc_dim, 24 * self.out_len)  # Adjust output shape to match input shape of the first conv layer in the encoder
+        self.deconv1 = nn.ConvTranspose1d(24, 24, 3, padding=1, stride=1)  # Reverse of ResBlock
+        self.bn1 = nn.BatchNorm1d(24)
+        self.deconv2 = nn.ConvTranspose1d(24, 24, 3, padding=1, stride=1)  # Reverse of ResBlock
+        self.bn2 = nn.BatchNorm1d(24)
+        self.deconv3 = nn.ConvTranspose1d(24, 1, 3, padding=1, stride=1)  # Reverse of Conv1 in encoder
+        self.bn3 = nn.BatchNorm1d(1)
+
+    def forward(self, x):
+        out = self.fc(x)
+        out = out.view(out.size(0), 24, self.out_len)  # Reshape to match the shape before max pooling in the encoder
+        out = F.relu(self.bn1(self.deconv1(out)))
+        out = F.relu(self.bn2(self.deconv2(out)))
+        out = F.relu(self.bn3(self.deconv3(out)))
+        return out
+
+
+class AutoEncoder(nn.Module):
+    def __init__(self, embedding_dim=128):
+        super().__init__()
+        self.encoder = Encoder(embedding_dim)
+        self.decoder = Decoder(embedding_dim)
+
+    def forward(self, x):
+        out = self.encoder(x)
+        out = self.decoder(out)
+        return out
+
+
+class Classifier(nn.Module):
+    def __init__(self, embedding_dim=128):
+        super().__init__()
+        self.encoder = Encoder(embedding_dim)
+        self.mlp = nn.Sequential(
+            nn.Linear(embedding_dim, 32),
+            nn.ELU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        out = self.encoder(x)
+        out = self.mlp(out)
         return out
