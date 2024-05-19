@@ -37,6 +37,22 @@ class CustomTimeSeriesDataset(Dataset):
         timeseries = self.timeseries[idx] ### THIS IS BECAUSE LSTM (with batch_first=True) expects a 3D tensor (seq_len, batch, input_size), and input_size is 1.
         label = self.labels[idx]
         return timeseries, label
+
+
+class EmbeddingDataset(Dataset):
+    def __init__(self, data_file, **kwargs):
+        data = np.load(data_file)
+        self.embeddings = torch.from_numpy(data["embeddings"]).float()
+        self.labels = torch.from_numpy(data["labels"]).float().unsqueeze(1)
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        embedding = self.embeddings[idx]
+        label = self.labels[idx]
+        return embedding, label
+
     
 def weighted_sampler_dataloader(dataset_subset, batch_size, repl=True):
     target=dataset_subset.dataset.labels[dataset_subset.indices]

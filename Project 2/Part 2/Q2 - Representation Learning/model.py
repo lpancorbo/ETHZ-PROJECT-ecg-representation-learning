@@ -73,29 +73,36 @@ class Decoder(nn.Module):
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, embedding_dim=128):
+    def __init__(self, embedding_dim=128, mode="reconstruction"):
         super().__init__()
         self.encoder = Encoder(embedding_dim)
         self.decoder = Decoder(embedding_dim)
+        self.act = nn.ELU()
+        self.fc1 = nn.Linear(embedding_dim, 1)
+        self.mode = mode
 
     def forward(self, x):
         out = self.encoder(x)
-        out = self.decoder(out)
+        if self.mode == "reconstruction":
+            out = self.act(out)
+            out = self.decoder(out)
+        elif self.mode == "classification":
+            out = self.fc1(out)
+            out = F.sigmoid(out)
         return out
 
 
 class Classifier(nn.Module):
     def __init__(self, embedding_dim=128):
         super().__init__()
-        self.encoder = Encoder(embedding_dim)
-        self.mlp = nn.Sequential(
-            nn.Linear(embedding_dim, 32),
-            nn.ELU(),
-            nn.Linear(32, 1),
-            nn.Sigmoid()
-        )
+        self.fc1 = nn.Linear(embedding_dim, 100)
+        self.fc2 = nn.Linear(100, 100)
+        self.fc3 = nn.Linear(100, 1)
+        self.act = nn.ELU()
 
     def forward(self, x):
-        out = self.encoder(x)
-        out = self.mlp(out)
+        out = self.act(self.fc1(x))
+        out = self.act(self.fc2(out))
+        out = self.fc3(out)
+        out = F.sigmoid(out)
         return out

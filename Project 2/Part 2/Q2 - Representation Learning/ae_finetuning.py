@@ -4,7 +4,7 @@ import pandas as pd
 from torch import nn
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pack_padded_sequence, unpad_sequence
-from dataset import CustomTimeSeriesDataset, weighted_sampler_dataloader
+from dataset import CustomTimeSeriesDataset, EmbeddingDataset, weighted_sampler_dataloader
 from contrastive_loss import TripletLossVaryingLength
 from torch.utils.data.sampler import WeightedRandomSampler
 from torch.utils.data import random_split
@@ -16,71 +16,82 @@ from model import AutoEncoder, Classifier
 from sklearn.metrics import roc_curve, roc_auc_score
 from tqdm import tqdm
 
-# Define model to be trained
-ae_name = "autoencoder"
-name = "ae_finetune_2"
-model = Classifier(embedding_dim=128)
-ae_model = AutoEncoder(embedding_dim=128)
-nettype = 'CNN'
+# Parameters:
+ae_name = "autoencoder_128"
+name = "ae_encoder_128_two_stage_2"
+dataset_train_path = "../../Part 1/ptbdb_train.csv"
+dataset_test_path = "../../Part 1/ptbdb_test.csv"
+embedding_dim = 128     # dimension of the encoder representations
+n_epochs = 100
+n_epochs_freeze_encoder = 50
+batch_size = 16
+
+
+# Model:
+mode = "encoder"    # use Autoencoder model in encoder-only mode
+encoder = AutoEncoder(embedding_dim=embedding_dim, mode=mode)
+classifier = Classifier(embedding_dim=embedding_dim)
+nettype = "CNN"     # used for dataset creation
 continue_training = True
-batch_size = 128
 
-# Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
-# For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
-# For simpleLSTM: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
-# FOR LSTM, USED BY JONA: optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-
-# Learning rate scheduler
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
-
+# Load pre-trained encoder:
 if continue_training:
-    ae_model.load_state_dict(torch.load(os.path.join('Model_Parameters', f'{ae_name}_best_parameters.pth')))
+    encoder.load_state_dict(torch.load(os.path.join('Model_Parameters', f'{ae_name}_best_parameters.pth')))
 
-model.encoder = ae_model.encoder
-# for parameter in model.encoder.parameters():
-#    parameter.requires_grad = False
-# Number of epochs
-n_epochs = 200
-
-## Initialize dataset and do train validation split
-
-# Create dataset object
-dataset = CustomTimeSeriesDataset('../../Part 1/ptbdb_train.csv', NetType=nettype)
-
-# Define the split sizes. In this case, 70% for training and 30% for validation
-train_size = int(0.8 * len(dataset))
-val_size = len(dataset) - train_size
-
-# Create two Datasets from the original one
-train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-
-## Training loop
-
-# Initialize train dataloader
-train_loader = weighted_sampler_dataloader(train_dataset, batch_size=batch_size, repl=True)
-# train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True) #was not using this because of the weighted sampler
-
-# Initialize validation loader THE BATCH SIZE NEEDS TO BE AS BIG AS POSSIBLE BECAUSE THERE ARE NO GRADIENTS. IF I CAN RUN ALL VAL SET IN PARALLEL, BETTER!
-val_loader = DataLoader(val_dataset, batch_size=2328, shuffle=False)
-
-# Define loss function and optimizer as BCE, as output is NOW a probability
-criterion = nn.BCELoss()
-
-# Sent model to device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(device)
-model.to(device)
+encoder.to(device)
+classifier.to(device)
 
-# Move optimizer state to device
+# Freeze encoder parameters:
+if n_epochs_freeze_encoder:
+    for parameter in encoder.parameters():
+        parameter.requires_grad = False
+
+
+# Optimizer:
+# optimizer = torch.optim.SGD(list(encoder.parameters()) + list(classifier.parameters()),
+#                             lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
+lr = 0.001
+optimizer = torch.optim.Adam(classifier.parameters(), lr=lr)
 for state in optimizer.state.values():
     for k, v in state.items():
         if isinstance(v, torch.Tensor):
             state[k] = v.to(device)
 
-# Loop over the dataset multiple times
-# make initial validation loss infinite
+# Learning rate scheduler:
+# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+# scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1)
+scheduler = None
+step_after_each_batch = False   # whether to apply scheduler step after each batch or after each epoch
+
+
+# Dataset:
+dataset = CustomTimeSeriesDataset(dataset_train_path, NetType=nettype)
+# dataset = EmbeddingDataset("Embeddings/ptbdb_train_embeddings.npz")
+train_size = int(0.8 * len(dataset))
+val_size = len(dataset) - train_size
+train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+train_loader = weighted_sampler_dataloader(train_dataset, batch_size=batch_size, repl=True)
+val_loader = DataLoader(val_dataset, batch_size=2328, shuffle=False)
+
+
+# Create parameter config file:
+with open(f"Configs/{name}.txt", "w+") as f:
+    f.writelines([
+        f"Optimizer: {type(optimizer)}(lr={lr})\n",
+        f"Scheduler: {type(scheduler) if scheduler is not None else 'None'}" + ("step after each batch\n" if step_after_each_batch else "\n"),
+        f"Batch Size: {batch_size}\n",
+        f"Epochs: {n_epochs}\n",
+        f"Encoder: Frozen for {n_epochs_freeze_encoder} epochs, embedding_dim={embedding_dim}\n",
+        f"Classifier: MLP(100, 100)\n"
+    ])
+
+
+# Loss function:
+criterion = nn.BCELoss()
+
+# Make initial validation loss infinite:
 val_loss = float('inf')
 
 # Set the val loss array with the size of the number of epochs
@@ -89,26 +100,47 @@ all_train_loss = [float('inf')] * n_epochs
 all_outputs = [float('inf')] * n_epochs
 all_labels = [float('inf')] * n_epochs
 
-# To save the best model later
-best_model = type(model)()
+
+# To save the best model later:
+best_encoder = type(encoder)(embedding_dim=embedding_dim, mode=mode)
+best_classifier = type(classifier)(embedding_dim=embedding_dim)
+
+
+# Training loop:
 for epoch in range(n_epochs):
-    model.train()  # Set model to training mode
+    encoder.train()
+    classifier.train()
+
+    if epoch == n_epochs_freeze_encoder:
+        for parameter in encoder.parameters():
+            parameter.requires_grad = True
+        optimizer.add_param_group({"params": encoder.parameters(), "lr": 0.0001})
+
     # step the learning rate scheduler
-    scheduler.step(val_loss)
+    if scheduler is not None and not step_after_each_batch:
+        scheduler.step()
 
     # Training loop
-    for i, (inputs, labels) in enumerate(tqdm(train_loader)):
+    for i, (inputs, labels) in enumerate(train_loader):
         inputs = inputs.to(device)
         labels = labels.to(device)
 
-        # Zero the parameter gradients
         optimizer.zero_grad()
-        outputs = model(inputs)
+
+        if isinstance(dataset, EmbeddingDataset):
+            outputs = classifier(inputs)    # inputs are already embeddings created by the encoder
+        else:
+            outputs = encoder(inputs)   # inputs are the original timeseries and need to be encoded first
+            outputs = classifier(outputs)
+
+        # Loss computation:
         loss = criterion(outputs, labels)
 
         # Backward pass and optimization
         loss.backward()
         optimizer.step()
+        if scheduler is not None and step_after_each_batch:
+            scheduler.step()
 
         if i == 0:
             all_train_loss[epoch] = loss.cpu().detach().numpy()
@@ -117,13 +149,19 @@ for epoch in range(n_epochs):
             all_labels[epoch] = labels.cpu().detach().numpy()
 
     # Validation loop
-    model.eval()  # Set model to evaluation mode
+    encoder.eval()  # Set model to evaluation mode
+    classifier.eval()
     val_loss = torch.tensor(0, dtype=torch.float32, device=device)
     with torch.no_grad():
         for i, (inputs, labels) in enumerate(val_loader):
             inputs = inputs.to(device)
             labels = labels.to(device)
-            val_outputs = model(inputs)
+            if isinstance(dataset, EmbeddingDataset):
+                val_outputs = classifier(inputs)
+            else:
+                val_outputs = encoder(inputs)
+                val_outputs = classifier(val_outputs)
+
             val_loss = (val_loss * i + criterion(val_outputs, labels).item()) / (i + 1)
 
     val_loss = val_loss.cpu().detach().numpy()
@@ -131,8 +169,10 @@ for epoch in range(n_epochs):
     if val_loss < min(all_val_loss):
         print(f'Epoch {epoch + 1}/{n_epochs}, Validation Loss: {val_loss}%, new best model!')
         # Save the model parameters,in case we lose them
-        best_model.load_state_dict(model.state_dict())  # Copy the model parameters
-        torch.save(best_model.state_dict(), os.path.join('Model_Parameters', f'{name}_best_parameters.pth'))
+        best_encoder.load_state_dict(encoder.state_dict())  # Copy the model parameters
+        best_classifier.load_state_dict(classifier.state_dict())
+        torch.save(best_encoder.state_dict(), os.path.join('Model_Parameters', f'{name}_best_parameters.pth'))
+        torch.save(best_classifier.state_dict(), os.path.join('Model_Parameters', f'{name}_best_classifier.pth'))
     else:
         print(f'Epoch {epoch + 1}/{n_epochs}, Validation Loss: {val_loss}%')
 
@@ -140,10 +180,11 @@ for epoch in range(n_epochs):
 
 torch.save({
     'optimizer_state_dict': optimizer.state_dict(),
-    'scheduler_state_dict': scheduler.state_dict(),
+    'scheduler_state_dict': scheduler.state_dict() if scheduler is not None else None,
 }, os.path.join('Model_Parameters', f'{name}_scheduler_optimizer_state.pth'))
 
-torch.save(best_model.state_dict(), os.path.join('Model_Parameters', f'{name}_best_parameters.pth'))
+torch.save(best_encoder.state_dict(), os.path.join('Model_Parameters', f'{name}_best_parameters.pth'))
+torch.save(best_classifier.state_dict(), os.path.join('Model_Parameters', f'{name}_best_classifier.pth'))
 val_outputs = val_outputs.cpu().detach().numpy()
 
 print('Finished Training')
@@ -179,19 +220,27 @@ axs[1, 0].legend(['Validation Loss', 'Train Loss'])
 
 #EVALUATION
 #Prepare test dataset
-dataset_test = CustomTimeSeriesDataset('../../Part 1/ptbdb_test.csv', NetType=nettype)
+dataset_test = CustomTimeSeriesDataset(dataset_test_path, NetType=nettype)
+# dataset_test = EmbeddingDataset("Embeddings/ptbdb_test_embeddings.npz")
 test_loader = DataLoader(dataset_test, batch_size=2910, shuffle=False)
 
 # Test loop
 #send best model to device
-best_model.to(device)
-best_model.eval()  # Set best model to evaluation mode
+best_encoder.to(device)
+best_classifier.to(device)
+best_encoder.eval()  # Set best model to evaluation mode
+best_classifier.eval()
 with torch.no_grad():
     for i, (inputs, labels) in enumerate(test_loader):
         inputs = inputs.to(device)
         labels = labels.to(device)
 
-        outputs = best_model(inputs).detach().cpu().numpy()
+        if isinstance(dataset_test, EmbeddingDataset):
+            outputs = best_classifier(inputs).detach().cpu().numpy()
+        else:
+            outputs = best_encoder(inputs)
+            outputs = best_classifier(outputs).detach().cpu().numpy()
+
         labels = labels.detach().cpu().numpy()
 
 # Plot ROC curve

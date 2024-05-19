@@ -17,8 +17,9 @@ from sklearn.metrics import roc_curve, roc_auc_score
 from tqdm import tqdm
 
 # Define model to be trained
-name = "autoencoder"
-model = AutoEncoder(embedding_dim=128)
+embedding_dim = 128
+name = "autoencoder_128"
+model = AutoEncoder(embedding_dim=embedding_dim, mode="reconstruction")
 nettype = 'CNN'
 continue_training = False
 batch_size = 128
@@ -86,7 +87,7 @@ all_val_loss = [float('inf')] * n_epochs
 all_train_loss = [float('inf')] * n_epochs
 
 # To save the best model later
-best_model = type(model)()
+best_model = type(model)(embedding_dim=embedding_dim)
 for epoch in range(n_epochs):
     model.train()  # Set model to training mode
     # step the learning rate scheduler

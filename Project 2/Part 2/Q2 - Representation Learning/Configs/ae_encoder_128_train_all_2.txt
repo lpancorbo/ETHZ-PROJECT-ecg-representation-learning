@@ -1,0 +1,6 @@
+Optimizer: <class 'torch.optim.adam.Adam'>(lr=0.001)
+Scheduler: None
+Batch Size: 16
+Epochs: 100
+Encoder: Frozen for 0 epochs, embedding_dim=128
+Classifier: MLP(100, 100)

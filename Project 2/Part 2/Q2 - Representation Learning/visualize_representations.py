@@ -19,18 +19,18 @@ from itertools import product
 from sklearn.decomposition import PCA
 
 
-model = AutoEncoder()
-name = "autoencoder"
+embedding_dim = 128
+model = AutoEncoder(embedding_dim=embedding_dim)
+name = "autoencoder_128"
 nettype = 'CNN'
 batch_size = 128
 model.load_state_dict(torch.load(os.path.join('Model_Parameters', f'{name}_best_parameters.pth')))
-model = model.encoder
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 model.to(device)
 
-dataset_test = CustomTimeSeriesDataset('../../Part 1/ptbdb_train.csv', NetType=nettype)
+dataset_test = CustomTimeSeriesDataset('../mitbih_test.csv', NetType=nettype)
 test_loader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False)
 
 
@@ -55,8 +55,16 @@ with torch.no_grad():
 all_inputs = np.asarray(all_inputs)
 all_outputs = np.asarray(all_outputs)
 labels = np.asarray(all_labels)
-np.savez("Embeddings/ptbdb_train_embeddings.npz", embeddings=all_outputs, labels=labels)
-exit()
+
+# fig, ax = plt.subplots(2, 5, figsize=(15, 5))
+# for i in range(5):
+#     ax.flatten()[i].plot(all_inputs[i], color="green")
+#     ax.flatten()[5+i].plot(all_outputs[i, 0, :], color="red")
+# ax[0, 0].set_ylabel("Original")
+# ax[1, 0].set_ylabel("Reconstruction")
+# plt.show()
+# exit()
+
 #all_outputs = np.nan_to_num(all_outputs)
 
 min_dist_values = [0.001, 0.01, 0.1]
