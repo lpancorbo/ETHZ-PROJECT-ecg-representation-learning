@@ -98,11 +98,13 @@ class Classifier(nn.Module):
         self.fc1 = nn.Linear(embedding_dim, 100)
         self.fc2 = nn.Linear(100, 100)
         self.fc3 = nn.Linear(100, 1)
+        #self.fc = nn.Linear(embedding_dim, 1)
         self.act = nn.ELU()
 
     def forward(self, x):
         out = self.act(self.fc1(x))
-        out = self.act(self.fc2(out))
+        #out = self.act(self.fc2(out))
         out = self.fc3(out)
+        #out = self.fc(x)
         out = F.sigmoid(out)
         return out

@@ -18,13 +18,15 @@ from tqdm import tqdm
 
 # Parameters:
 ae_name = "autoencoder_128"
-name = "ae_encoder_128_two_stage_2"
+name = "ae_encoder_128_freeze_encoder_6"
 dataset_train_path = "../../Part 1/ptbdb_train.csv"
 dataset_test_path = "../../Part 1/ptbdb_test.csv"
 embedding_dim = 128     # dimension of the encoder representations
 n_epochs = 100
-n_epochs_freeze_encoder = 50
+n_epochs_freeze_encoder = 100
 batch_size = 16
+lr = 0.001
+lr_encoder = 0.001
 
 
 # Model:
@@ -51,7 +53,6 @@ if n_epochs_freeze_encoder:
 # Optimizer:
 # optimizer = torch.optim.SGD(list(encoder.parameters()) + list(classifier.parameters()),
 #                             lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
-lr = 0.001
 optimizer = torch.optim.Adam(classifier.parameters(), lr=lr)
 for state in optimizer.state.values():
     for k, v in state.items():
@@ -114,7 +115,7 @@ for epoch in range(n_epochs):
     if epoch == n_epochs_freeze_encoder:
         for parameter in encoder.parameters():
             parameter.requires_grad = True
-        optimizer.add_param_group({"params": encoder.parameters(), "lr": 0.0001})
+        optimizer.add_param_group({"params": encoder.parameters(), "lr": lr_encoder})
 
     # step the learning rate scheduler
     if scheduler is not None and not step_after_each_batch:
