@@ -14,11 +14,12 @@ from sklearn.metrics import roc_curve,roc_auc_score, precision_recall_curve, f1_
 import matplotlib.pyplot as plt
 from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, TransformerWithAttentionOutputted
 
-models = [simpleLSTM(), BiLSTM(), simpleCNN(), ResCNN(), TransformerWithAttentionOutputted()]
-names = ['lstm', "bi_lstm", '200simpleCNN', '200resCNN', 'TransformerWithAttentionOutputted']
+models = [simpleLSTM(), BiLSTM()]
+names = ['finalLSTM', "finalBiLSTM"]
 nettypes = ['LSTM', 'LSTM', 'CNN', 'CNN', 'Transformer']
 for i,model in enumerate(models):
-    #Load lstm, biLSTM, TransformerWithAttentionOutputted, ResCNN, simpleCNN
+    #Load lstm, biLSTM
+    
     name = names[i]
     best_model = model
     nettype = nettypes[i]
@@ -43,9 +44,9 @@ for i,model in enumerate(models):
             if nettype == 'LSTM':
                 lengths = []
                 for sequence in inputs[:, :, 0]:
-                    # length = torch.nonzero(sequence).size(0)
-                    # lengths.append(length)
-                    lengths.append(sequence.size(0))
+                    length = torch.nonzero(sequence).size(0)
+                    lengths.append(length)
+                    #lengths.append(sequence.size(0))
                 inputs = pack_padded_sequence(inputs, lengths=lengths, batch_first=True, enforce_sorted=False)
 
             inputs = inputs.to(device)

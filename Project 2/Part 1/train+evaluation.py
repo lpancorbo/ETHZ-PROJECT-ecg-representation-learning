@@ -15,17 +15,18 @@ from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer, Transfo
 from sklearn.metrics import roc_curve,roc_auc_score
 
 #Define model to be trained
-name = "TransformerWithAttentionOutputted"
-model = TransformerWithAttentionOutputted()
-nettype = 'Transformer'
+name = "finalBiLSTM"
+model = BiLSTM()
+nettype = 'LSTM'
 continue_training = False
-batch_size = 32
+batch_size = 16
 
 #Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
 #For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
 #For simpleLSTM: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
-optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
-#FOR LSTM, USED BY JONA: optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+#optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
+#FOR LSTM, USED BY JONA: 
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
 #Learning rate scheduler
@@ -98,9 +99,9 @@ for epoch in range(n_epochs):
         if nettype == 'LSTM':
             lengths = []
             for sequence in inputs[:, :, 0]:
-                # length = torch.nonzero(sequence).size(0)
-                # lengths.append(length)
-                lengths.append(sequence.size(0))
+                length = torch.nonzero(sequence).size(0)
+                lengths.append(length)
+                #lengths.append(sequence.size(0))
             inputs = pack_padded_sequence(inputs, lengths=lengths, batch_first=True, enforce_sorted=False)
 
         inputs = inputs.to(device)
@@ -132,9 +133,9 @@ for epoch in range(n_epochs):
             if nettype == 'LSTM':
                 lengths = []
                 for sequence in inputs[:, :, 0]:
-                    # length = torch.nonzero(sequence).size(0)
-                    # lengths.append(length)
-                    lengths.append(sequence.size(0))
+                    length = torch.nonzero(sequence).size(0)
+                    lengths.append(length)
+                    #lengths.append(sequence.size(0))
                 inputs = pack_padded_sequence(inputs, lengths=lengths, batch_first=True, enforce_sorted=False)
 
             inputs = inputs.to(device)
@@ -211,9 +212,9 @@ with torch.no_grad():
         if nettype == 'LSTM':
             lengths = []
             for sequence in inputs[:, :, 0]:
-                # length = torch.nonzero(sequence).size(0)
-                # lengths.append(length)
-                lengths.append(sequence.size(0))
+                length = torch.nonzero(sequence).size(0)
+                lengths.append(length)
+                #lengths.append(sequence.size(0))
             inputs = pack_padded_sequence(inputs, lengths=lengths, batch_first=True, enforce_sorted=False)
 
         inputs = inputs.to(device)

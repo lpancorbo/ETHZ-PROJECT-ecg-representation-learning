@@ -30,7 +30,7 @@ class simpleLSTM(nn.Module):
         h0 = torch.zeros(self.num_layers, x.batch_sizes[0], self.hidden_size).to(x.data.device)
         c0 = torch.zeros(self.num_layers, x.batch_sizes[0], self.hidden_size).to(x.data.device)
         
-        out, (h_n, c_n) = self.lstm(x, (h0, c0))
+        _, (h_n, c_n) = self.lstm(x, (h0, c0))
         out = self.act(self.fc(h_n[-1]))
         out = self.fc2(out)
         out = F.sigmoid(out)
@@ -55,7 +55,6 @@ class BiLSTM(nn.Module):
         c0 = torch.zeros(self.num_layers * 2, x.batch_sizes[0], self.hidden_size).to(x.data.device)
 
         _, (h_n, c_n) = self.lstm(x, (h0, c0))
-        #out = F.elu(cf[-1, :, :]) #try to escape local minima
         out = self.fc(h_n[-1])
         out = F.elu(out)
         out = self.fc2(out)
