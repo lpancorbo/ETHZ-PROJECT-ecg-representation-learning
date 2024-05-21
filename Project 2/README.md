@@ -3,6 +3,12 @@
 
 ## Part 2:
 ### Transfer Learning:
+- model_transfer_supervided.py: Contains the ResCNN model modified for 5 classes. It also contains the model for transfer learning and the encoder. Once the model is trained on the MITBIH dataset, it needs to be saved in the same directory as this file under the name "./ResCNN_mitbih_best_parameters.pth".
+- model_transfer_supervised_training.py: Trains the model on MITBIH and saves the best parameters as "./ResCNN_mitbih_best_parameters.pth".
+- VisualisingLearnedRepresentations.ipynb: Extracts the embeddings with the get_feature_extractor function from model_transfer_supervised.py. This notebook performs dimensionality reduction and computes KL divergence
+- FinetuningStrategies_ClassicML.py: loads the encoder from model_transfer_supervided.py, extracts the embeddings for PTB and feeds them into a Random Forest.
+- FinetuningStrategies_MLP.py: Loads the transfer_model from model_transfer_supervided.py and follows one of the three strategies defines by the TASK variable (A, B or C). Best models were saved as "transfer_model_A_16batch_100epochs_best_parameters.pth", "transfer_model_B_16batch_100epochs_best_parameters.pth", "transfer_model_C_16batch_100epochs_best_parameters.pth".
+- FinetuningStrategies_MLP_metrics.py: Compute metrics and joint ROC curve for the 3 strategies
 
 ### Representation Learning:
 - ae_training.py: train a ResCNN autoencoder on the MIT-BIH dataset. Trained model is saved in the Model_Parameters folder. Paths to train and test dataset need to be specified at the top of the script. Test plots are saved in the Figures folder.
