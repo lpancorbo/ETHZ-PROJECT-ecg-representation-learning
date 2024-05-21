@@ -23,10 +23,10 @@ dataset_train_path = "../../Part 1/ptbdb_train.csv"
 dataset_test_path = "../../Part 1/ptbdb_test.csv"
 embedding_dim = 128     # dimension of the encoder representations
 n_epochs = 100
-n_epochs_freeze_encoder = 100
+n_epochs_freeze_encoder = 100   # how many epochs to keep the encoder layers frozen
 batch_size = 16
-lr = 0.001
-lr_encoder = 0.001
+lr = 0.001  # classifier lr
+lr_encoder = 0.001  # encoder lr when unfrozen
 
 
 # Model:

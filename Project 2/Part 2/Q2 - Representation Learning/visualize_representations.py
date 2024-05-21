@@ -72,70 +72,81 @@ with torch.no_grad():
 
 all_inputs_mitbih = np.asarray(all_inputs_mitbih)
 all_outputs_mitbih = np.asarray(all_outputs_mitbih)
-labels = np.asarray(all_labels_mitbih)
+labels_mitbih = np.asarray(all_labels_mitbih)
 
 all_inputs_ptb = np.asarray(all_inputs_ptb)
 all_outputs_ptb = np.asarray(all_outputs_ptb)
 labels_ptb = np.asarray(all_labels_ptb)
+
+# # Save embedding files
+# np.savez("mitbih_test_embeddings.npz", embeddings=all_outputs_mitbih, labels=all_labels_mitbih)
+# np.savez("ptb_test_embeddings.npz", embeddings=all_inputs_ptb, labels=all_inputs_ptb)
 
 # Apply PCA
 pca = PCA(n_components=50)  # Reduce to the first 50 principal components
 pca_mitbih = pca.fit_transform(all_outputs_mitbih)
 pca_ptb = pca.fit_transform(all_outputs_ptb)
 
-# Compute KL divergences between mitbih embeddings with different labels:
-kl_matrix = np.zeros((len(np.unique(labels)), len(np.unique(labels))))
-for i, label_1 in enumerate(np.unique(labels)):
-    for j, label_2 in enumerate(np.unique(labels)):
-        outputs_1 = pca_mitbih[all_labels_mitbih == label_1]
-        outputs_2 = pca_mitbih[all_labels_mitbih == label_2]
-        kl_matrix[i, j] = KLdivergence(outputs_1, outputs_2)
-print((kl_matrix + kl_matrix.T) / 2)
+# # Compute KL divergences between mitbih embeddings with different labels:
+# kl_matrix = np.zeros((len(np.unique(labels_mitbih)), len(np.unique(labels_mitbih))))
+# for i, label_1 in enumerate(np.unique(labels_mitbih)):
+#     for j, label_2 in enumerate(np.unique(labels_mitbih)):
+#         outputs_1 = pca_mitbih[all_labels_mitbih == label_1]
+#         outputs_2 = pca_mitbih[all_labels_mitbih == label_2]
+#         kl_matrix[i, j] = KLdivergence(outputs_1, outputs_2)
+# print((kl_matrix + kl_matrix.T) / 2)
+#
+# # Compute JS divergence between mitbih embeddings and ptb embeddings:
+# kl_datasets = (KLdivergence(pca_mitbih, pca_ptb) + KLdivergence(pca_ptb, pca_mitbih)) / 2
+# print(kl_datasets)
 
-# Compute JS divergence between mitbih embeddings and ptb embeddings:
-kl_datasets = (KLdivergence(pca_mitbih, pca_ptb) + KLdivergence(pca_ptb, pca_mitbih)) / 2
-print(kl_datasets)
-exit()
-
-# Plot autoencoder reconstructions:
+# # Plot autoencoder reconstructions:
 # fig, ax = plt.subplots(2, 5, figsize=(15, 5))
 # for i in range(5):
-#     ax.flatten()[i].plot(all_inputs[i], color="green")
-#     ax.flatten()[5+i].plot(all_outputs[i, 0, :], color="red")
+#     ax.flatten()[i].plot(all_inputs_mitbih[i], color="green")
+#     ax.flatten()[5+i].plot(all_outputs_mitbih[i, 0, :], color="red")
 # ax[0, 0].set_ylabel("Original")
 # ax[1, 0].set_ylabel("Reconstruction")
 # plt.show()
-# exit()
-
-#all_outputs = np.nan_to_num(all_outputs)
-
-min_dist_values = [0.0125, 0.05, 0.2, 0.8]
-n_neighbors_values = [20, 50, 80, 100]
 
 # Create subplots
-fig, axs = plt.subplots(len(min_dist_values), len(n_neighbors_values), figsize=(20, 20))
+min_dist = 0.05
+n_neighbors = 50
 
-# Iterate over combinations of parameters
-for i, min_dist in enumerate(min_dist_values):
-    for j, n_neighbors in enumerate(n_neighbors_values):
-        print(f"min_dist: {min_dist}, n_neighbors: {n_neighbors}")
-        # Initialize UMAP with current parameters
-        umap_model = umap.UMAP(min_dist=min_dist, n_neighbors=n_neighbors)
+# Initialize UMAP with current parameters
+umap_model = umap.UMAP(min_dist=min_dist, n_neighbors=n_neighbors)
 
-        # Fit UMAP to the reduced embeddings
-        umap_result = umap_model.fit_transform(pca_mitbih)
+# Fit UMAP to the reduced embeddings
+umap_result_ptb = umap_model.fit_transform(pca_ptb)
+umap_result_mitbih = umap_model.fit_transform(pca_mitbih)
 
-        # Plot the embeddings
-        ax = axs[i, j]
-        scatter = ax.scatter(umap_result[:, 0], umap_result[:, 1], c=labels, s=5, cmap=plt.cm.plasma)
-        ax.legend(*scatter.legend_elements(), loc='lower right')
-        # for label in np.unique(labels):
-        #     indices = np.where(labels == label)
-        #     ax.scatter(umap_result[indices, 0], umap_result[indices, 1], label=label, s=5, cmap=plt.cm.plasma)
-        ax.set_title(f'min_dist={min_dist}, n_neighbors={n_neighbors}')
-        ax.set_xlabel('UMAP Dimension 1')
-        ax.set_ylabel('UMAP Dimension 2')
+# Plot the embeddings
+fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+scatter = ax[0].scatter(umap_result_ptb[:, 0], umap_result_ptb[:, 1], c=labels_ptb, s=5, cmap=plt.cm.plasma)
+ax[0].legend(*scatter.legend_elements(), loc='lower right')
+
+ax[0].set_title("PTB Representations")
+ax[0].set_xlabel(f'min_dist={min_dist}, n_neighbors={n_neighbors}')
+
+scatter = ax[1].scatter(umap_result_mitbih[:, 0], umap_result_mitbih[:, 1], c=labels_mitbih, s=5, cmap=plt.cm.plasma)
+ax[1].legend(*scatter.legend_elements(), loc='lower right')
+
+ax[1].set_title("MIT-BIH Representations")
+ax[1].set_xlabel(f'min_dist={min_dist}, n_neighbors={n_neighbors}')
 
 # Adjust layout
 plt.tight_layout()
 plt.show()
+
+# Compute KL divergences between mitbih embeddings with different labels:
+kl_matrix = np.zeros((len(np.unique(labels_mitbih)), len(np.unique(labels_mitbih))))
+for i, label_1 in enumerate(np.unique(labels_mitbih)):
+    for j, label_2 in enumerate(np.unique(labels_mitbih)):
+        outputs_1 = umap_result_mitbih[all_labels_mitbih == label_1]
+        outputs_2 = umap_result_mitbih[all_labels_mitbih == label_2]
+        kl_matrix[i, j] = KLdivergence(outputs_1, outputs_2)
+print((kl_matrix + kl_matrix.T) / 2)
+
+# Compute JS divergence between mitbih embeddings and ptb embeddings:
+kl_datasets = (KLdivergence(umap_result_mitbih, umap_result_ptb) + KLdivergence(umap_result_ptb, umap_result_mitbih)) / 2
+print(kl_datasets)
