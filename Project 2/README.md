@@ -1,5 +1,12 @@
 # Machine Learning For Healthcare - Project 2
-## Part 1:
+## Part 1: Requires ptb datasets in .csv format in the part 1 subfolder
+- ExploratoryDataAnalysisPTB.ipynb: Contains the visualization of label distribution and dataset size for the PTB database
+- ClassicMachineLearning_final.ipynb: Contains the training and plotting of performance of classic machine learning models, without and with manually extracted features
+- MyDataset.py: Contains the definition of the Dataset object, that receives the .csv file and creates the samples and labels
+- train+evaluation.py: Contains the training loop and plots related to training behaviour, on train and val sets, and ROC/ROC AUC, on test test. Plots saved in a .png file. Here, you should define the model to be used (see ModelZoo.py file), and the training parameters. Optimizer used for each model was commented.
+- ModelZoo.py: Defines the classes of all deep learning architectures that were trained. Model hyperparameters used are the ones specified inside these classes.
+- evaluation.py: Contains the loop over the desired models that allows the computation of different performance metrics in test set, which are saved in a .png figure with a table.
+- attention_maps_transformer.py : Contains the code that evaluates test set and computes self-attention weights received by each time point from other points, for different examples from positive and negative classes.
 
 ## Part 2:
 ### Transfer Learning:

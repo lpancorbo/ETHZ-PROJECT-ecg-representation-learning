@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import torch
 import os
 import matplotlib.pyplot as plt
-from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, Transformer, TransformerWithAttentionOutputted
+from ModelZoo import simpleCNN, simpleLSTM, BiLSTM, ResCNN, TransformerWithAttentionOutputted
 from sklearn.metrics import roc_curve,roc_auc_score
 
 #Define model to be trained
@@ -21,11 +21,11 @@ nettype = 'LSTM'
 continue_training = False
 batch_size = 16
 
-#Define optimizer as SGD with a lot of hyperparameters to avoid local minima (no dropout or regularization, we are trying to overfit here)
-#For simpleCNN: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
-#For simpleLSTM: SGD lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True
+#Define optimizer as SGD with a lot of hyperparameters to avoid local minima
+
+#For simpleCNN, ResCNN, TransformerWithAttentionOutputted: 
 #optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.0, nesterov=True)
-#FOR LSTM, USED BY JONA: 
+#FOR simpleLSTM and BiLSTM, USED BY JONA: 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
