@@ -13,13 +13,13 @@ import torch
 import os
 import matplotlib.pyplot as plt
 from model import AutoEncoder, Classifier
-from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.metrics import roc_curve, roc_auc_score, balanced_accuracy_score, f1_score, precision_recall_curve, auc
 from tqdm import tqdm
 
 # Parameters:
-names = ["ae_encoder_128_freeze_encoder_4",
-         "ae_encoder_128_train_all_2",
-         "ae_encoder_128_two_stage_2"]
+names = ["ae_encoder_128_freeze_encoder_6",
+         "ae_encoder_128_train_all_4",
+         "ae_encoder_128_two_stage_4"]
 plot_labels = ["Strategy A", "Strategy B", "Strategy C"]
 dataset_test_path = "../../Part 1/ptbdb_test.csv"
 embedding_dim = 128
@@ -59,9 +59,22 @@ for ind, name in enumerate(names):
 
             labels = labels.detach().cpu().numpy()
 
+    # Compute scores:
+    balanced_acc = balanced_accuracy_score(labels, np.rint(outputs))
+    f1 = f1_score(labels, np.rint(outputs), average='weighted')
+    pr, recall, thresh = precision_recall_curve(labels, outputs)
+    pr_auc_rf = auc(recall, pr)
+
     # Plot ROC curve
     fpr, tpr, _ = roc_curve(labels, outputs)
     roc_auc = round(roc_auc_score(labels, outputs), 4)
+
+    print(name)
+    print(f"Balanced Accuracy: {balanced_acc}")
+    print(f"F1 Score: {f1}")
+    print(f"ROC-AUC: {roc_auc}")
+    print(f"PR-AUC: {pr_auc_rf}")
+    print()
 
     plt.plot(fpr, tpr, lw=2, label=f'ROC AUC {plot_labels[ind]}: {roc_auc}')
 
@@ -73,5 +86,5 @@ plt.title('ROC curve')
 plt.legend(loc="lower right")
 
 # Save all figures
-plt.savefig(os.path.join('Figures', f'finetuning_roc_curves_2.png'))
+plt.savefig(os.path.join('Figures', f'finetuning_roc_curves_4.png'))
 plt.close()
