@@ -1,25 +1,76 @@
-# Machine Learning For Healthcare - Project 2
-## Part 1: Requires ptb datasets in .csv format in the part 1 subfolder
-- ExploratoryDataAnalysisPTB.ipynb: Contains the visualization of label distribution and dataset size for the PTB database
-- ClassicMachineLearning_final.ipynb: Contains the training and plotting of performance of classic machine learning models, without and with manually extracted features
-- MyDataset.py: Contains the definition of the Dataset object, that receives the .csv file and creates the samples and labels
-- train+evaluation.py: Contains the training loop and plots related to training behaviour, on train and val sets, and ROC/ROC AUC, on test test. Plots saved in a .png file. Here, you should define the model to be used (see ModelZoo.py file), and the training parameters. Optimizer used for each model was commented.
-- ModelZoo.py: Defines the classes of all deep learning architectures that were trained. Model hyperparameters used are the ones specified inside these classes.
-- evaluation.py: Contains the loop over the desired models that allows the computation of different performance metrics in test set, which are saved in a .png figure with a table.
-- attention_maps_transformer.py : Contains the code that evaluates test set and computes self-attention weights received by each time point from other points, for different examples from positive and negative classes.
+# ECG Representation Learning Project
 
-## Part 2:
-### Transfer Learning:
-- model_transfer_supervided.py: Contains the ResCNN model modified for 5 classes. It also contains the model for transfer learning and the encoder. Once the model is trained on the MITBIH dataset, it needs to be saved in the same directory as this file under the name "./ResCNN_mitbih_best_parameters.pth".
-- model_transfer_supervised_training.py: Trains the model on MITBIH and saves the best parameters as "./ResCNN_mitbih_best_parameters.pth".
-- VisualisingLearnedRepresentations.ipynb: Extracts the embeddings with the get_feature_extractor function from model_transfer_supervised.py. This notebook performs dimensionality reduction and computes KL divergence
-- FinetuningStrategies_ClassicML.py: loads the encoder from model_transfer_supervided.py, extracts the embeddings for PTB and feeds them into a Random Forest.
-- FinetuningStrategies_MLP.py: Loads the transfer_model from model_transfer_supervided.py and follows one of the three strategies defines by the TASK variable (A, B or C). Best models were saved as "transfer_model_A_16batch_100epochs_best_parameters.pth", "transfer_model_B_16batch_100epochs_best_parameters.pth", "transfer_model_C_16batch_100epochs_best_parameters.pth".
-- FinetuningStrategies_MLP_metrics.py: Compute metrics and joint ROC curve for the 3 strategies
+This repository contains our implementation for the ML4H project. It is organized in two main parts, each addressing different aspects of supervised, transfer, and representation learning on time series data from ECG datasets.
 
-### Representation Learning:
-- ae_training.py: train a ResCNN autoencoder on the MIT-BIH dataset. Trained model is saved in the Model_Parameters folder. Paths to train and test dataset need to be specified at the top of the script. Test plots are saved in the Figures folder.
-- ae_finetuning.py: fine-tune the pre-trained autoencoder with additional output layers on the PTB dataset. Trained model is saved in the Model_Parameters folder (separate files for encoder and classifier MLP). Paths to train and test dataset and model pth file need to be specified at the top of the script.
-- evaluate.py: Evaluate fine-tuned model on the PTB test set and compute performance scores (balanced accuracy, F1, ROC-AUC, PR-AUC, ROC curve). Paths to test dataset and model pth file need to be specified at the top of the script.
-- visualize_representations.py: Create UMAP visualizations from encoder embeddings of MIT-BIH or PTB test dataset and compute KL-divergences between embedding distributions of different labels/between the two datasets Paths to test dataset and model pth file need to be specified at the top of the script.
-- ClassicMachineLearning.ipynb: train classic ML methods such as random forest on encoder embeddings. Paths to train and test embedding npz files has to be specified at the top of the notebook (embedding files are created in visualize_representations.py and stored in the Embeddings folder). 
+For more context, please refer to the [project report](docs).
+
+---
+
+## Part 1: Supervised Learning on Time Series
+
+Focus: Classification of ECG time series from the PTB Diagnostic ECG Database as healthy or abnormal.
+
+### Exploratory Data Analysis
+- **File:** [ExploratoryDataAnalysisPTB.ipynb](src/visualization/ExploratoryDataAnalysisPTB.ipynb)
+- Visualize example time series and label distribution.
+
+### Classic Machine Learning Methods
+- **Files:** [ClassicMachineLearning_final.ipynb](src/classic_ml/ClassicMachineLearning_final.ipynb)
+- Train classic ML classifiers on raw time series.
+- Engineer additional features and retrain models.
+
+### Deep Learning Methods
+- **Files:** [model_zoo.py](src/models/model_zoo.py), [train_evaluation.py](src/training/train_evaluation.py)
+
+- **Recurrent Neural Networks**: LSTM and bidirectional LSTM models.
+- **Convolutional Neural Networks**: vanilla CNN and CNN with residual blocks.
+- **Attention and Transformers**: transformer model. Visualize attention maps with [attention_maps_transformer.ipynb](src/visualization/attention_maps_transformer.ipynb)
+
+---
+
+## Part 2: Transfer and Representation Learning
+
+Focus: Leveraging the MIT-BIH database to improve learning on the PTB dataset using transfer and representation learning.
+
+### Supervised Model for Transfer
+- **Files:** [model_transfer_supervised.py](src/models/model_transfer_supervised.py), [model_transfer_supervised_training.py](src/training/model_transfer_supervised_training.py)
+- Train resCNN on MIT-BIH for arrhythmia classification.
+- Use the trained model as a pre-trained encoder for transfer learning.
+
+### Representation Learning Model
+- **Files:** [ae_training.py](src/training/ae_training.py), [ae_finetuning.py](src/training/ae_finetuning.py), [evaluate.py](src/evaluation/evaluate.py)
+- Pretrain an encoder using unsupervised or self-supervised objectives (autoencoder).
+- Evaluate learned representations using classic ML methods.
+
+### Visualising Learned Representations
+- **Files:** [visualize_representations.py](src/visualization/visualize_representations.py), [VisualisingLearnedRepresentations.ipynb](src/visualization/VisualisingLearnedRepresentations.ipynb)
+- Use encoders to obtain representations for MIT-BIH and PTB datasets.
+- Visualize with UMAP and provide quantitative metrics.
+
+### Finetuning Strategies
+- **Files:** [FinetuningStrategies_ClassicML.py](src/classic_ml/FinetuningStrategies_ClassicML.py), [FinetuningStrategies_MLP.py](src/classic_ml/FinetuningStrategies_MLP.py), [FinetuningStrategies_MLP_metrics.ipynb](src/classic_ml/FinetuningStrategies_MLP_metrics.ipynb)
+- Apply different finetuning strategies to pre-trained encoders:
+  - Classic ML on encoder representations
+  - MLP output layers: freeze encoder, train all, or staged training
+
+---
+
+## Data, Figures, and Models
+- **data:** Datasets must be placed in `data/`. Data is downloaded from [PTB Diagnostic ECG Database](https://physionet.org/content/ptbdb/1.0.0/) and [MIT-BIH Arrhythmia Database](https://physionet.org/physiobank/database/mitdb/) and processed as follows:
+    - Samples are cropped, downsampled, and padded with zeros to a fixed length of 188.
+    - Each dataset is split into training and test CSV files, where each row is an example and the last column is the class label.
+- **figures:** All plots and results are in `figures/`
+- **models:** All saved model weights are in `models/`
+
+---
+
+## How to Run
+
+Create a Conda environment and install requirements:
+```bash
+conda create -n ecg-dl python=3.11
+conda activate ecg-dl
+pip install -r requirements.txt
+```
+
+---
