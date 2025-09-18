@@ -1,6 +1,0 @@
-Optimizer: Adam(lr=0.001)
-Scheduler: None
-Batch Size = 128
-Epochs = 200
-Encoder: Frozen for 50 epochs, embedding_dim=128
-Classifier: MLP(100, 100)

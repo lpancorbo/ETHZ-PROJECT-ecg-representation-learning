@@ -3,5 +3,5 @@ __pycache__/
 *$py.class
 
 # Ignore models and figures
-models/
-figures/
+# models/
+# figures/

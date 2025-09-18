@@ -1,6 +1,0 @@
-Optimizer: Adam(lr=0.001)
-Scheduler: CosineAnnealingWarmRestarts(T_0=1), step after each batch
-Batch Size = 128
-Epochs = 200
-Encoder: Frozen, embedding_dim=128
-Classifier: MLP(100, 100)
