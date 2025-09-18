@@ -2,6 +2,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Ignore models and figures
-# models/
-# figures/
+# Ignore everything inside figures/ and models/ except .gitkeep
+figures/*
+!figures/.gitkeep
+
+models/*
+!models/.gitkeep
